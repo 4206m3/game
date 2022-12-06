@@ -1,7 +1,7 @@
 import math
 from random import choice
 
-import pygame
+import pygame as pg
 
 
 FPS = 30
@@ -22,7 +22,7 @@ HEIGHT = 600
 
 
 class Ball:
-    def __init__(self, screen: pygame.Surface, x=40, y=450):
+    def __init__(self, screen: pg.Surface, x=40, y=450):
         """ Конструктор класса ball
 
         Args:
@@ -50,7 +50,7 @@ class Ball:
         self.y -= self.vy
 
     def draw(self):
-        pygame.draw.circle(
+        pg.draw.circle(
             self.screen,
             self.color,
             (self.x, self.y),
@@ -66,7 +66,7 @@ class Ball:
             Возвращает True в случае столкновения мяча и цели. В противном случае возвращает False.
         """
         # FIXME
-            return False
+        return False
 
 
 class Gun:
@@ -108,6 +108,12 @@ class Gun:
 
     def draw(self):
         # FIXIT don't know how to do it
+        pg.draw.circle(
+            self.screen,
+            self.color,
+            (10, HEIGHT-10),
+            10
+        )        
 
     def power_up(self):
         if self.f2_on:
@@ -139,12 +145,12 @@ class Target:
         ...
 
 
-pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pg.init()
+screen = pg.display.set_mode((WIDTH, HEIGHT))
 bullet = 0
 balls = []
 
-clock = pygame.time.Clock()
+clock = pg.time.Clock()
 gun = Gun(screen)
 target = Target()
 finished = False
@@ -155,17 +161,17 @@ while not finished:
     target.draw()
     for b in balls:
         b.draw()
-    pygame.display.update()
+    pg.display.update()
 
     clock.tick(FPS)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
             finished = True
-        elif event.type == pygame.MOUSEBUTTONDOWN:
+        elif event.type == pg.MOUSEBUTTONDOWN:
             gun.fire2_start(event)
-        elif event.type == pygame.MOUSEBUTTONUP:
+        elif event.type == pg.MOUSEBUTTONUP:
             gun.fire2_end(event)
-        elif event.type == pygame.MOUSEMOTION:
+        elif event.type == pg.MOUSEMOTION:
             gun.targetting(event)
 
     for b in balls:
@@ -176,4 +182,4 @@ while not finished:
             target.new_target()
     gun.power_up()
 
-pygame.quit()
+pg.quit()
