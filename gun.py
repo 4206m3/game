@@ -19,7 +19,15 @@ GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 
 WIDTH = 800
 HEIGHT = 600
+SCREENRECT = pg.Rect(0, 0, WIDTH, HEIGHT)
 
+def load_image(file):
+    """Загрузка и подготовка изображений"""
+    try:
+        surface = pg.image.load(file)
+    except pg.error:
+        raise SystemExit(f'Не удалось загрузить изображение "{file}" {pg.get_error()}')
+    return surface.convert()
 
 class Ball:
     def __init__(self, screen: pg.Surface, x=40, y=450):
@@ -145,23 +153,98 @@ class Target:
         ...
 
 
+class Tank(pg.sprite.Sprite):
+
+    speed = 10
+    gun_offset = -11
+    images = []
+
+    def __init__(self):
+        pg.sprite.Sprite.__init__(self, self.containers)
+        self.image = self.images[0]
+        self.rect = self.image.get_rect(midbottom=SCREENRECT.midbottom)
+        self.reloading = 0
+        self.origtop = self.rect.top
+        self.facing = -1
+
+    def move(self, direction):
+        if direction:
+            self.facing = direction
+        self.rect.move_ip(direction * self.speed, 0)
+        self.rect = self.rect.clamp(SCREENRECT)
+        if direction < 0:
+            self.image = self.images[0]
+        elif direction > 0:
+            self.image = self.images[1]
+
+    def gunpos(self):
+        pos = self.facing * self.gun_offset + self.rect.centerx
+        return pos, self.rect.top
+    
+
+# Initialize pygame
+if pg.get_sdl_version()[0] == 2:
+    pg.mixer.pre_init(44100, 32, 2, 1024)
 pg.init()
 screen = pg.display.set_mode((WIDTH, HEIGHT))
 bullet = 0
 balls = []
 
+# доДЕЛАТЬ: загрузку фона
+# create the background, tile the bgd image
+bgdtile = load_image("data/background.gif")
+background = pg.Surface(SCREENRECT.size)
+for x in range(0, SCREENRECT.width, bgdtile.get_width()):
+    background.blit(bgdtile, (x, 0))
+screen.blit(background, (0, 0))
+pg.display.flip()
+
+# Загрузка изображений и назначение спрайтов классам
+# (до использования классов, после настройки screen)
+img = load_image("data/player1.gif")
+Tank.images = [img, pg.transform.flip(img, 1, 0)]
+
+# Initialize Game Groups
+# aliens = pg.sprite.Group()
+# shots = pg.sprite.Group()
+# bombs = pg.sprite.Group()
+all = pg.sprite.RenderUpdates()
+# lastalien = pg.sprite.GroupSingle()
+
+# assign default groups to each sprite class
+Tank.containers = all
+# Alien.containers = aliens, all, lastalien
+# Shot.containers = shots, all
+# Bomb.containers = bombs, all
+# Explosion.containers = all
+# Score.containers = all
+
 clock = pg.time.Clock()
 gun = Gun(screen)
+tank1 = Tank()
 target = Target()
 finished = False
 
 while not finished:
-    screen.fill(WHITE)
+#     screen.fill(WHITE)
+
+    keystate = pg.key.get_pressed()
+    # clear/erase the last drawn sprites
+    all.clear(screen, background)
+    # update all the sprites
+    all.update()   
+    # handle player input
+    direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
+    tank1.move(direction)
+    
     gun.draw()
     target.draw()
     for b in balls:
         b.draw()
-    pg.display.update()
+
+    # draw the scene
+    dirty = all.draw(screen)
+    pg.display.update(dirty)     
 
     clock.tick(FPS)
     for event in pg.event.get():
