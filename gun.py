@@ -3,6 +3,7 @@ from random import choice
 
 import pygame as pg
 
+MAX_SHOTS = 2  # сколько снарядов может быть на экране
 
 FPS = 30
 
@@ -180,7 +181,27 @@ class Tank(pg.sprite.Sprite):
     def gunpos(self):
         pos = self.facing * self.gun_offset + self.rect.centerx
         return pos, self.rect.top
+
     
+class Shot(pg.sprite.Sprite):
+    """Снаряды которыми стреляет танк"""
+
+    speed = -11
+    images = []
+
+    def __init__(self, pos):
+        pg.sprite.Sprite.__init__(self, self.containers)
+        self.image = self.images[0]
+        self.rect = self.image.get_rect(midbottom=pos)
+
+    def update(self):
+        """called every time around the game loop.
+        Every tick we move the shot upwards.
+        """
+        self.rect.move_ip(0, self.speed)
+        if self.rect.top <= 0:
+            self.kill()
+
 
 # Initialize pygame
 if pg.get_sdl_version()[0] == 2:
@@ -199,14 +220,17 @@ for x in range(0, SCREENRECT.width, bgdtile.get_width()):
 screen.blit(background, (0, 0))
 pg.display.flip()
 
+# доДЕЛАТЬ: звуки
+
 # Загрузка изображений и назначение спрайтов классам
 # (до использования классов, после настройки screen)
 img = load_image("data/player1.gif")
 Tank.images = [img, pg.transform.flip(img, 1, 0)]
+Shot.images = [load_image("data/shot.gif")]
 
 # Initialize Game Groups
 # aliens = pg.sprite.Group()
-# shots = pg.sprite.Group()
+shots = pg.sprite.Group()
 # bombs = pg.sprite.Group()
 all = pg.sprite.RenderUpdates()
 # lastalien = pg.sprite.GroupSingle()
@@ -214,7 +238,7 @@ all = pg.sprite.RenderUpdates()
 # assign default groups to each sprite class
 Tank.containers = all
 # Alien.containers = aliens, all, lastalien
-# Shot.containers = shots, all
+Shot.containers = shots, all
 # Bomb.containers = bombs, all
 # Explosion.containers = all
 # Score.containers = all
@@ -236,6 +260,12 @@ while not finished:
     # handle player input
     direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
     tank1.move(direction)
+    firing = keystate[pg.K_SPACE]
+    if not tank1.reloading and firing and len(shots) < MAX_SHOTS:
+        Shot(tank1.gunpos())
+#         if pg.mixer:
+#             shoot_sound.play()
+    tank1.reloading = firing    
     
     gun.draw()
     target.draw()
