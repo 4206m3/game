@@ -1,9 +1,7 @@
 import math
-from random import choice
+import random
 
 import pygame as pg
-
-MAX_SHOTS = 2  # сколько снарядов может быть на экране
 
 FPS = 30
 
@@ -18,17 +16,30 @@ WHITE = 0xFFFFFF
 GREY = 0x7D7D7D
 GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 
-WIDTH = 800
-HEIGHT = 600
+WIDTH = 1366
+HEIGHT = 700
 SCREENRECT = pg.Rect(0, 0, WIDTH, HEIGHT)
 
-def load_image(file):
+def load_image(file, colorkey=None, scale=1):
     """Загрузка и подготовка изображений"""
     try:
-        surface = pg.image.load(file)
+        image = pg.image.load(file)
+        image = image.convert()
+        
+        # изменение размера изображения
+        size = image.get_size()
+        size = (size[0] * scale, size[1] * scale)
+        image = pg.transform.scale(image, size)
+
+        # Установка цвета прозрачности
+        if colorkey is not None:
+            if colorkey == -1:
+                colorkey = image.get_at((0, 0))
+            image.set_colorkey(colorkey, pg.RLEACCEL)        
     except pg.error:
         raise SystemExit(f'Не удалось загрузить изображение "{file}" {pg.get_error()}')
-    return surface.convert()
+    return image
+
 
 class Ball:
     def __init__(self, screen: pg.Surface, x=40, y=450):
@@ -44,7 +55,7 @@ class Ball:
         self.r = 10
         self.vx = 0
         self.vy = 0
-        self.color = choice(GAME_COLORS)
+        self.color = random.choice(GAME_COLORS)
         self.live = 30
 
     def move(self):
@@ -153,11 +164,12 @@ class Target:
     def draw(self):
         ...
 
-
+        
 class Tank(pg.sprite.Sprite):
 
     speed = 10
-    gun_offset = -11
+    gun_offset_x = 20
+    gun_offset_y = 12
     images = []
 
     def __init__(self):
@@ -166,7 +178,13 @@ class Tank(pg.sprite.Sprite):
         self.rect = self.image.get_rect(midbottom=SCREENRECT.midbottom)
         self.reloading = 0
         self.origtop = self.rect.top
-        self.facing = -1
+        self.facing = 1
+        # добавить дуло танку
+        
+        self.f2_power = 10
+        self.f2_on = 0
+        self.an = 1
+        
 
     def move(self, direction):
         if direction:
@@ -178,29 +196,68 @@ class Tank(pg.sprite.Sprite):
         elif direction > 0:
             self.image = self.images[1]
 
-    def gunpos(self):
-        pos = self.facing * self.gun_offset + self.rect.centerx
-        return pos, self.rect.top
 
+    def gunpos(self):
+        x = self.facing * self.gun_offset_x + self.rect.centerx
+        y = self.rect.top+self.gun_offset_y
+        return x, y
     
+    def targetting(self, event):
+        pass
+        
+    def fire2_start(self, event):
+        self.f2_on = 1
+
+    def fire2_end(self, event):
+        """Выстрел мячом.
+
+        Происходит при отпускании кнопки мыши.
+        Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
+        """
+        if self.f2_on == 1:
+            new_ball = Shot(self.gunpos())
+            self.an = math.atan2((event.pos[1]-new_ball.y), (event.pos[0]-new_ball.x))
+            new_ball.vx = self.f2_power * math.cos(self.an)
+            new_ball.vy = - self.f2_power * math.sin(self.an)
+            self.f2_on = 0
+            self.f2_power = 5
+    
+    def power_up(self):
+        if self.f2_on:
+            if self.f2_power < 100:
+                self.f2_power += 1
+                
+    def update(self):
+        # вызывается на каждом цикле игры
+        ...
+
+            
 class Shot(pg.sprite.Sprite):
     """Снаряды которыми стреляет танк"""
 
-    speed = -11
     images = []
 
     def __init__(self, pos):
         pg.sprite.Sprite.__init__(self, self.containers)
         self.image = self.images[0]
         self.rect = self.image.get_rect(midbottom=pos)
+        self.x = pos[0]
+        self.y = pos[1]
+        self.vx = 1
+        self.vy = 1
+        self.live = 30
 
     def update(self):
-        """called every time around the game loop.
-        Every tick we move the shot upwards.
+        """Переместить мяч по прошествии единицы времени.
+
+        Метод описывает перемещение мяча за один кадр перерисовки. То есть, обновляет значения
+        self.x и self.y с учетом скоростей self.vx и self.vy, силы гравитации, действующей на мяч,
+        и стен по краям окна.
         """
-        self.rect.move_ip(0, self.speed)
-        if self.rect.top <= 0:
-            self.kill()
+        self.rect.move_ip(self.vx, -self.vy)
+        self.vy = self.vy - 1
+        if not SCREENRECT.contains(self.rect):
+            self.kill()            
 
 
 # Initialize pygame
@@ -213,44 +270,41 @@ balls = []
 
 # доДЕЛАТЬ: загрузку фона
 # create the background, tile the bgd image
-bgdtile = load_image("data/background.gif")
+bgdtile = load_image("data/bg1366x768.jpg")
 background = pg.Surface(SCREENRECT.size)
 for x in range(0, SCREENRECT.width, bgdtile.get_width()):
-    background.blit(bgdtile, (x, 0))
+     background.blit(bgdtile, (x, 0))
 screen.blit(background, (0, 0))
+# screen.blit(bgdtile, (0, 0))
 pg.display.flip()
 
 # доДЕЛАТЬ: звуки
 
 # Загрузка изображений и назначение спрайтов классам
 # (до использования классов, после настройки screen)
-img = load_image("data/player1.gif")
+img = load_image("data/tank1.png", -1, 0.5)
 Tank.images = [img, pg.transform.flip(img, 1, 0)]
-Shot.images = [load_image("data/shot.gif")]
+Shot.images = [load_image("data/ball.png", -1)]
 
 # Initialize Game Groups
-# aliens = pg.sprite.Group()
 shots = pg.sprite.Group()
-# bombs = pg.sprite.Group()
 all = pg.sprite.RenderUpdates()
-# lastalien = pg.sprite.GroupSingle()
 
 # assign default groups to each sprite class
 Tank.containers = all
-# Alien.containers = aliens, all, lastalien
 Shot.containers = shots, all
-# Bomb.containers = bombs, all
-# Explosion.containers = all
-# Score.containers = all
+
 
 clock = pg.time.Clock()
-gun = Gun(screen)
+# gun = Gun(screen)
 tank1 = Tank()
-target = Target()
+tank1.rect.left = 0
+tank2 = Tank()
+tank2.rect.right = WIDTH
+# target = Target()
 finished = False
 
 while not finished:
-#     screen.fill(WHITE)
 
     keystate = pg.key.get_pressed()
     # clear/erase the last drawn sprites
@@ -258,41 +312,31 @@ while not finished:
     # update all the sprites
     all.update()   
     # handle player input
-    direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
+  
+    direction = keystate[pg.K_d] - keystate[pg.K_a]
     tank1.move(direction)
-    firing = keystate[pg.K_SPACE]
-    if not tank1.reloading and firing and len(shots) < MAX_SHOTS:
-        Shot(tank1.gunpos())
-#         if pg.mixer:
-#             shoot_sound.play()
-    tank1.reloading = firing    
     
-    gun.draw()
-    target.draw()
-    for b in balls:
-        b.draw()
-
-    # draw the scene
-    dirty = all.draw(screen)
-    pg.display.update(dirty)     
-
+    direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
+    tank2.move(direction)
+    
     clock.tick(FPS)
     for event in pg.event.get():
         if event.type == pg.QUIT:
             finished = True
         elif event.type == pg.MOUSEBUTTONDOWN:
-            gun.fire2_start(event)
+            but1, but2, but3 = pg.mouse.get_pressed()
+            if but1:
+                tank1.fire2_start(event)
         elif event.type == pg.MOUSEBUTTONUP:
-            gun.fire2_end(event)
+            tank1.fire2_end(event)
         elif event.type == pg.MOUSEMOTION:
-            gun.targetting(event)
+            tank1.targetting(event)
 
-    for b in balls:
-        b.move()
-        if b.hittest(target) and target.live:
-            target.live = 0
-            target.hit()
-            target.new_target()
-    gun.power_up()
+    tank1.power_up()
+    
+    # draw the scene
+    dirty = all.draw(screen)
+    pg.display.update(dirty)   
 
+    
 pg.quit()
