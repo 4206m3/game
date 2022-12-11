@@ -332,7 +332,7 @@ while not finished:
         elif event.type == pg.MOUSEMOTION:
             tank1.targetting(event)
 
-    tank1.power_up()
+    tank2.power_up()
     
     # draw the scene
     dirty = all.draw(screen)
