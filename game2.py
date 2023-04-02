@@ -834,7 +834,6 @@ while not finished:
             # Если игрок умер, игра окончена
         if tank1.lives == 0:
             tank1.destroy()
-            tank1.kill()
             dead1 = True
 
         # draw the scene
@@ -854,7 +853,9 @@ while not finished:
         # вывод текста Game Over
         if dead1:
             screen.blit(game_over_text, (470, 250))
-            screen.blit(press_space_text, (400, 330))
+            screen.blit(font_PS.render(user_text, True, BLACK), (400,350))
+            screen.blit(font_PS.render("Счет:"+str(score),True,BLACK),(400,400))
+            screen.blit(press_space_text, (400, 450))
         draw_lives(screen, 25, 6, tank1.lives,
                    tank_mini_img)
         draw_shield_bar(screen, 15, 43, tank1.shield)
