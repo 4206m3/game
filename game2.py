@@ -1,14 +1,19 @@
 """
 доДЕЛАТЬ:
-- после взрыва игрока, танк пропадает, но можно продолжать стрелять и играть
-- управление танком №2 - как сделать чтобы он мог наравне сражаться без мышки?
-ИЛИ
-вариант 2: сделать игрока №2 союзником, пусть управляет вертолетом и сражается за нас.
-Вертолет стреляет горизонтально. Управление усложнить пусть падает под действием силы тяжести.
+По нашему собственному ТЗ не хватает:
+- возможность ввести имя игрока
+- выбора режима игры – 1 или 2 игрока
+- сохранить свой рекорд по имени.
+- таблица с рекордами
+- отражаются очки, жизни и уровень здоровья (доделать для вертолета).
+- вывод информации где можно увидеть какими кнопками управлять
 
-- добавить отображение здоровья и жизней, щита
-- меню где можно хотябы увидеть какими кнопками управлять
-- укоротить звук падающей бомбы или прекратить его когда она упала уже...
+Также нужно устранить ряд глюков
+- после взрыва игрока (вертолет), спрайт пропадает, но можно продолжать стрелять и играть
+- не обязательно: укоротить звук падающей бомбы или прекратить его когда она упала уже...
+
+Дополнительно (если будет время):
+- сбалансировать управление вертолетом, он очень быстро умирает....
 
 """
 
@@ -26,17 +31,8 @@ BOMBER_RELOAD = 30  # frames between new bomber
 TANK_RELOAD = 30  # frames between shots
 menu=True
 FPS = 30
+DIFF_LEVEL_TIMER = FPS * 10  # таймер повышения сложности игры каждые 10 сек
 
-RED = 0xFF0000
-BLUE = 0x0000FF
-YELLOW = 0xFFC91F
-GREEN = 0x00FF00
-MAGENTA = 0xFF03B8
-CYAN = 0x00FFCC
-BLACK = (0, 0, 0)
-WHITE = 0xFFFFFF
-GREY = 0x7D7D7D
-GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 user_text=""
 WIDTH = 1366
 HEIGHT = 700
@@ -96,11 +92,13 @@ def draw_shield_bar(surf, x, y, pct):
     fill_rect = pg.Rect(x, y, fill, BAR_HEIGHT)
     pg.draw.rect(surf, GREEN, fill_rect)
     pg.draw.rect(surf, WHITE, outline_rect, 2)
+    
 def print_text(message,x,y, textFont, textSize, textColor=(0,0,0)):
     newFont=pg.font.Font(textFont, textSize)
     newText=newFont.render(message, True, textColor)
     screen.blit(newText, (x,y))
     return newText
+
 class Button:
     def __init__(self,width,heigth):
         self.width=width
@@ -118,6 +116,7 @@ class Button:
         else:
             pg.draw.rect(screen, self.inactive_color, (x, y, self.width, self.height))
         print_text(message=message, x=x+30, y=y+30, textFont=None, textSize=font_size)
+        
 def input_text2():
     clock = pygame.time.Clock()
     # basic font for user typed
@@ -179,6 +178,7 @@ def game():
     global menu
     menu=False
     return menu
+
 def main_menu():
     clock = pygame.time.Clock()
     start=Button(150,70)
@@ -484,8 +484,8 @@ class Tank(pg.sprite.Sprite):
         # временно скрыть игрока
         self.hidden = True
         self.dulo.hide()
-        self.hide_timer = pg.time.get_ticks()  # не понял, это зачем здесь..?
-        self.rect.center = (WIDTH / 2, HEIGHT + 200)  # и это? чтобы нельзя было попасть в отсутствующий танк ))
+        self.hide_timer = pg.time.get_ticks()
+        self.rect.center = (WIDTH / 2, HEIGHT + 200)  # чтобы нельзя было попасть в отсутствующий танк ))
 
     def print_self(self):
         print(self)
@@ -495,7 +495,7 @@ class Tank(pg.sprite.Sprite):
         Explosion(self, 'player')
         self.dulo.kill()
         self.kill()
-        print('убит')
+#         print('убит')
 
     def gunpos(self):
         x = self.facing * self.gun_offset_x + self.rect.centerx
@@ -552,18 +552,16 @@ class Bomber(pg.sprite.Sprite):
             self.rect.right = SCREENRECT.right
             self.image = self.images[1]
 
-    def boom(self):
+    def destroy(self):
         self.kill()
+        Explosion(self, 'lg')
+        expl_sound.play() 
 
     def update(self):
         self.rect.move_ip(self.facing, 0)
         if not SCREENRECT.contains(self.rect):
             self.kill()
 
-
-#       смена спрайтов (нужно несколько изображений загрузить!)
-#         self.frame = self.frame + 1
-#         self.image = self.images[self.frame // self.animcycle % 3]
 
 class Bomb(pg.sprite.Sprite):
     """Бомба"""
@@ -617,80 +615,98 @@ class Shot(pg.sprite.Sprite):
         if not SCREENRECT.contains(self.rect):
             self.kill()
 
+class Shot_small(pg.sprite.Sprite):
+    """Пули которыми стреляет вертолет"""
+    speed = 15
+    images = []
+
+    def __init__(self, pos, direction):
+        pg.sprite.Sprite.__init__(self, self.containers)
+        self.image = self.images[0]
+        self.rect = self.image.get_rect(midbottom=pos)
+        self.x = pos[0]
+        self.y = pos[1]
+        self.vx = direction*self.speed
+        self.vy = 0
+
+    def update(self):
+        self.rect.move_ip(self.vx, -self.vy)
+        if not SCREENRECT.contains(self.rect):
+            self.kill()
+            
 class Helicopter(pg.sprite.Sprite):
 
-            speed = 0.5
-            g = 0.2
-            gun_offset_x = 50
-            gun_offset_y = 52
-            num_img = 0
-            images = []
+    speed = 0.5
+    g = 0.2
+    gun_offset_x = 50
+    gun_offset_y = 52
+    num_img = 0
+    images = []
 
-            def __init__(self):
-                pg.sprite.Sprite.__init__(self, self.containers)
-                self.image = self.images['left'][0]
-                self.rect = self.image.get_rect(midbottom=SCREENRECT.midbottom)
-                self.reloading = 0
-                self.facing = 1
-                self.vx = 0
-                self.vy = 0
+    def __init__(self):
+        pg.sprite.Sprite.__init__(self, self.containers)
+        self.image = self.images['left'][0]
+        self.rect = self.image.get_rect(midbottom=SCREENRECT.midbottom)
+        self.reloading = 0
+        self.facing = 1
+        self.vx = 0
+        self.vy = 0
 
-                self.shield = 100
-                self.lives = 3
-                self.hidden = False
-                self.hide_timer = pg.time.get_ticks()
+        self.shield = 100
+        self.lives = 3
+        self.hidden = False
+        self.hide_timer = pg.time.get_ticks()
 
+        self.frame = 0
+        self.last_update = pg.time.get_ticks()
+        self.frame_rate = 30
+
+    def move(self, direction):
+        self.vx = self.vx + direction * self.speed
+        if direction:
+            self.facing = direction
+
+    def vert_move(self, direction):
+        self.vy = self.vy + direction * self.speed
+
+    def destroy(self):
+        expl_sound.play()
+        Explosion(self, 'player')
+        self.kill()
+
+    def gunpos(self):
+        x = self.facing * self.gun_offset_x + self.rect.centerx
+        y = self.rect.top + self.gun_offset_y
+        return x, y
+
+    def fire(self):
+        if not self.reloading:  # and len(small_shots) < MAX_SHOTS:
+            Shot_small(self.gunpos(), self.facing)
+            self.reloading = 10
+            shot1_sound.play()
+
+    def update(self):
+        # вызывается на каждом цикле игры
+        self.rect.move_ip(self.vx, -self.vy)
+        self.rect = self.rect.clamp(SCREENRECT)
+        if self.rect.bottom < HEIGHT:
+            self.vy = self.vy - self.g
+
+        if self.reloading > 0:
+            self.reloading -= 1
+
+        now = pg.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame += 1
+            if self.frame == self.num_img:
                 self.frame = 0
-                self.last_update = pg.time.get_ticks()
-                self.frame_rate = 30
+            if self.facing < 0:
+                self.image = self.images['right'][self.frame]
+            else:
+                self.image = self.images['left'][self.frame]
 
-            def move(self, direction):
-                self.vx = self.vx + direction * self.speed
-                if direction:
-                    self.facing = direction
-
-            def vert_move(self, direction):
-                self.vy = self.vy + direction * self.speed
-
-            def destroy(self):
-                expl_sound.play()
-                Explosion(self, 'player')
-                self.kill()
-
-            def gunpos(self):
-                x = self.facing * self.gun_offset_x + self.rect.centerx
-                y = self.rect.top + self.gun_offset_y
-                return x, y
-
-            def fire(self):
-                if not self.reloading:  # and len(small_shots) < MAX_SHOTS:
-                    Shot_small(self.gunpos(), self.facing)
-                    self.reloading = 10
-                    shot1_sound.play()
-
-            def update(self):
-                # вызывается на каждом цикле игры
-                self.rect.move_ip(self.vx, -self.vy)
-                self.rect = self.rect.clamp(SCREENRECT)
-                if self.rect.bottom < HEIGHT:
-                    self.vy = self.vy - self.g
-
-                if self.reloading > 0:
-                    self.reloading -= 1
-
-                now = pg.time.get_ticks()
-                if now - self.last_update > self.frame_rate:
-                    self.last_update = now
-                    self.frame += 1
-                    if self.frame == self.num_img:
-                        self.frame = 0
-                    if self.facing < 0:
-                        self.image = self.images['right'][self.frame]
-                    else:
-                        self.image = self.images['left'][self.frame]
-
-        # Initialize pygame
-
+# Initialize pygame
 
 # if pg.get_sdl_version()[0] == 2:
 #    pg.mixer.pre_init(44100, 32, 2, 1024)
@@ -705,7 +721,7 @@ balls = []
 main_menu()
 
 
-# доДЕЛАТЬ: загрузку фона
+# загрузка фона
 # create the background, tile the bgd image
 bgdtile = load_image("data/bg1366x768.jpg")
 background = pg.Surface(SCREENRECT.size)
@@ -730,6 +746,7 @@ img = load_image("data/tank1.png", -1, 0.5)
 tank_mini_img=load_image("data/tank1.png", -1, 0.1)
 Tank.images = [img, pg.transform.flip(img, 1, 0)]
 Shot.images = [load_image("data/ball.png", -1)]
+Shot_small.images = [load_image("data/small_shot.png", -1)]
 img = load_image("data/dulo2.png", -1, 0.5)
 Dulo.images = [img]
 Missle.images = [load_image("data/spr_missile.png", 1)]
@@ -762,6 +779,8 @@ for i in range(4):
     img = load_image("data/helicopter_{}.png".format(i), -1, 1)
     Helicopter.images['left'].append(img)
     Helicopter.images['right'].append(pg.transform.flip(img, 1, 0))
+    
+    
 # Initialize Game Groups
 shots = pg.sprite.Group()
 bombers = pg.sprite.Group()
@@ -773,11 +792,12 @@ priz = pg.sprite.Group()
 for i in range(MAX_MISSILES):
     newmiss()
 newpriz()
-score = 0
+
 # assign default groups to each sprite class
 Tank.containers = all
 Dulo.containers = all
 Shot.containers = shots, all
+Shot_small.containers = shots, all
 Explosion.containers = all
 Bomber.containers = bombers, all, lastbomber
 Bomb.containers = bombs, all
@@ -788,15 +808,18 @@ clock = pg.time.Clock()
 # gun = Gun(screen)
 tank1 = Tank()
 tank1.rect.left = 0
-tank2 = Tank()
-tank2.rect.right = WIDTH
+# tank2 = Tank()
+# tank2.rect.right = WIDTH
 # target = Target()
 finished = False
 hel = Helicopter()
 hel.rect.left = 0
 hel.rect.top = HEIGHT/2
+
 score = 0
+diff_level_count_fps = 0
 dead1 = False
+
 font = pg.font.Font(None, 25)  # шрифт для счета очков
 
 # текст GameOver
@@ -806,167 +829,176 @@ font_PS = pg.font.Font(None, 42)
 press_space_text = font_PS.render("нажмите пробел для продолжения игры", True, BLACK)
 
 while not finished:
+    
+    clock.tick(FPS)
+        
+    keystate = pg.key.get_pressed()
+    # clear/erase the last drawn sprites
+    all.clear(screen, background)
+    # update all the sprites
+    all.update()
+    # handle player input
 
-        keystate = pg.key.get_pressed()
-        # clear/erase the last drawn sprites
-        all.clear(screen, background)
-        # update all the sprites
-        all.update()
-        # handle player input
+    direction = keystate[pg.K_d] - keystate[pg.K_a]
+    tank1.move(direction)
 
-        direction = keystate[pg.K_d] - keystate[pg.K_a]
-        tank1.move(direction)
+    direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
+    hel.move(direction)
+    hel.vert_move(keystate[pg.K_UP] - keystate[pg.K_DOWN])
+    if keystate[pg.K_RCTRL]:
+        hel.fire()
+    
+    for event in pg.event.get():
 
-        #direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
-        #tank2.move(direction)
+        if event.type == pg.QUIT:
+            finished = True
 
-        direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
-        hel.move(direction)
-        hel.vert_move(keystate[pg.K_UP] - keystate[pg.K_DOWN])
-        if keystate[pg.K_RCTRL]:
-            hel.fire()
-        clock.tick(FPS)
-        for event in pg.event.get():
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            but1, but2, but3 = pg.mouse.get_pressed()
+            if but1:
+                tank1.fire2_start(event)
 
-            if event.type == pg.QUIT:
-                finished = True
+        elif event.type == pg.MOUSEBUTTONUP and not dead1:  # мертвый танк не стреляет
+            tank1.fire2_end(event)
 
-            elif event.type == pg.MOUSEBUTTONDOWN:
-                but1, but2, but3 = pg.mouse.get_pressed()
-                if but1:
-                    tank1.fire2_start(event)
+        elif event.type == pg.MOUSEMOTION:
+            tank1.targetting(event)
 
-            elif event.type == pg.MOUSEBUTTONUP and not dead1:  # мертвый танк не стреляет
-                tank1.fire2_end(event)
+        # продолжение игры после смерти по нажатию ПРОБЕЛ
+        elif event.type == pg.KEYDOWN:
+            if event.key == pg.K_SPACE:
+                dead1 = False
+                tank1 = Tank()
+                tank1.rect.left = 0
+                screen.blit(background, (0, 0))  # удаляем текст Game
 
-            elif event.type == pg.MOUSEMOTION:
-                tank1.targetting(event)
+    tank1.power_up()
+    # проверьте, не попал ли танк в ракету
+    hits = pg.sprite.groupcollide(miss, shots, True, True)
+    for hit in hits:
+        score += 5
+        # random.choice(expl_sounds).play()
+        expl_sound.play()  # звук взрыва при попадании в ракету
+        Explosion(hit, 'lg')
+        newmiss()
 
-            # продолжение игры после смерти по нажатию ПРОБЕЛ
-            elif event.type == pg.KEYDOWN:
-                if event.key == pg.K_SPACE:
-                    dead1 = False
-                    tank1 = Tank()
-                    tank1.rect.left = 0
-                    screen.blit(background, (0, 0))  # удаляем текст Game
+    # Проверка на столкновение с призом
+    hits = pg.sprite.spritecollide(tank1, priz, True)
+    for hit in hits:
+        if hit.type == 'shield':
+            tank1.shield += random.randrange(30, 50)
+            if tank1.shield >= 100:
+                tank1.shield = 100
+        if hit.type == 'life':
+            tank1.lives += 1
+        newpriz()
 
-        tank1.power_up()
-        # проверьте, не попал ли танк в ракету
-        hits = pg.sprite.groupcollide(miss, shots, True, True)
-        for hit in hits:
-            score += 5
-            # random.choice(expl_sounds).play()
-            expl_sound.play()  # звук взрыва при попадании в ракету
-            Explosion(hit, 'lg')
-            newmiss()
+    #  Проверка, не ударил ли моб игрока
+    if not dead1:
+        hits = pg.sprite.spritecollide(tank1, miss, True)
+    for hit in hits:
+        expl_sound.play()
+        tank1.shield -= 10
+        Explosion(hit, 'sm')
+        newmiss()
+        if tank1.shield <= 0:
+            death_explosion = Explosion(tank1, 'player')
+            tank1.hide()
+            tank1.lives -= 1
+            tank1.shield = 100
+    hits = pg.sprite.spritecollide(hel, miss, True)
+    for hit in hits:
+        hel.shield -= 10
+        Explosion(hit, 'sm')
+        newmiss()
+        if hel.shield <= 0:
+            hel.destroy()
+    if bomberreload:
+        bomberreload = bomberreload - 1
+    elif not int(random.random() * BOMBER_ODDS):
+        Bomber()
+        bomberreload = BOMBER_RELOAD
 
-        # Проверка на столкновение с призом
-        hits = pg.sprite.spritecollide(tank1, priz, True)
-        for hit in hits:
-            if hit.type == 'shield':
-                tank1.shield += random.randrange(30, 50)
-                if tank1.shield >= 100:
-                    tank1.shield = 100
-            if hit.type == 'life':
-                tank1.lives += 1
-            newpriz()
+    # Сброс бомбы
+    if lastbomber and not int(random.random() * BOMB_ODDS):
+        Bomb(lastbomber.sprite)
 
-        #  Проверка, не ударил ли моб игрока
-        if not dead1:
-            hits = pg.sprite.spritecollide(tank1, miss, True)
+    # Попадание снарядов в цели
+    for bomber in pg.sprite.groupcollide(bombers, shots, 1, 1).keys():
+        bomber.destroy()
+        score += 10
+        
+#     # Попадание снарядов в вертолет
+#     for shot in pg.sprite.spritecollide(hel, shots, 1):
+#         hel.destroy()
+        
+    # Столкновение вертолета с бомбером
+    for bomber in pg.sprite.spritecollide(hel, bombers, 1):
+        hel.destroy() 
+        
+    # Попадание бомб в игрока
+    if not dead1:
+        hits = pg.sprite.spritecollide(tank1, bombs, 1)
         for hit in hits:
             expl_sound.play()
-            tank1.shield -= 10
+            tank1.shield -= 50
             Explosion(hit, 'sm')
-            newmiss()
             if tank1.shield <= 0:
                 death_explosion = Explosion(tank1, 'player')
                 tank1.hide()
                 tank1.lives -= 1
                 tank1.shield = 100
-        hits = pg.sprite.spritecollide(hel, miss, True)
-        for hit in hits:
-            hel.shield -= 10
-            Explosion(hit, 'sm')
-            newmiss()
-            if hel.shield <= 0:
-                hel.destroy()
-        if bomberreload:
-            bomberreload = bomberreload - 1
-        elif not int(random.random() * BOMBER_ODDS):
-            Bomber()
-            bomberreload = BOMBER_RELOAD
-
-        # Сброс бомбы
-        if lastbomber and not int(random.random() * BOMB_ODDS):
-            Bomb(lastbomber.sprite)
-
-        # Попадание снарядов в цели
-        for bomber in pg.sprite.groupcollide(bombers, shots, 1, 1).keys():
-            bomber.kill()
-            Explosion(bomber, 'lg')
-            expl_sound.play()
-            score += 10
-
-        # Попадание бомб в игрока
-        if not dead1:
-            hits = pg.sprite.spritecollide(tank1, bombs, 1)
-            for hit in hits:
-                expl_sound.play()
-                tank1.shield -= 50
-                Explosion(hit, 'sm')
-                if tank1.shield <= 0:
-                    death_explosion = Explosion(tank1, 'player')
-                    tank1.hide()
-                    tank1.lives -= 1
-                    tank1.shield = 100
-        for bomb in pg.sprite.spritecollide(tank2, bombs, 1):
-            tank2.destroy()
-
-            #     # Попадание снарядов в вертолет
-            #     for shot in pg.sprite.spritecollide(hel, shots, 1):
-            #         hel.destroy()
-
-            # Столкновение вертолета с бомбером
-            for bomber in pg.sprite.spritecollide(hel, bombers, 1):
-                hel.destroy()
-
-                # Попадание бомб в игроков
-            for bomb in pg.sprite.spritecollide(tank1, bombs, 1):
-                tank1.destroy()
-            for bomb in pg.sprite.spritecollide(hel, bombs, 1):
-                hel.destroy()
-
-                # Если игрок умер, игра окончена
-        if tank1.lives == 0:
+                
+        # Попадание бомб в танк
+        for bomb in pg.sprite.spritecollide(tank1, bombs, 1):
             tank1.destroy()
-            dead1 = True
 
-        # draw the scene
-        dirty = all.draw(screen)
-        pg.display.update(dirty)
+    # Столкновение вертолета с бомбером
+    for bomber in pg.sprite.spritecollide(hel, bombers, 1):
+        hel.destroy()
+    # Попадание бомб в вертолет
+    for bomb in pg.sprite.spritecollide(hel, bombs, 1):
+        hel.destroy()
 
-        # отображение очков 1 игрок
-        screen.blit(score_img, (0, 0))
-        score_text = font.render("Score 1: " + str(score), True, BLACK)
-        screen.blit(score_text, (25, 20))
+    # Если игрок умер, игра окончена
+    if tank1.lives == 0:
+        tank1.destroy()
+        dead1 = True
 
-        # отображение очков 2 игрок
-        screen.blit(score_img, (1220, 0))
-        score_text = font.render("Score 2:  0", True, BLACK)
-        screen.blit(score_text, (1245, 20))
-        print_text(user_text, 30,50,None,45,WHITE)
-        # вывод текста Game Over
-        if dead1:
-            screen.blit(game_over_text, (470, 250))
-            screen.blit(font_PS.render(user_text, True, BLACK), (400,350))
-            screen.blit(font_PS.render("Счет:"+str(score),True,BLACK),(400,400))
-            screen.blit(press_space_text, (400, 450))
-        draw_lives(screen, 25, 6, tank1.lives,
-                   tank_mini_img)
-        draw_shield_bar(screen, 15, 43, tank1.shield)
+    # draw the scene
+    dirty = all.draw(screen)
+    pg.display.update(dirty)
 
-        pg.display.flip()
+    # отображение очков 1 игрок
+    screen.blit(score_img, (0, 0))
+    score_text = font.render("Score 1: " + str(score), True, BLACK)
+    screen.blit(score_text, (25, 20))
+
+    # отображение очков 2 игрок
+    screen.blit(score_img, (1220, 0))
+    score_text = font.render("Score 2:  0", True, BLACK)
+    screen.blit(score_text, (1245, 20))
+    print_text(user_text, 30,50,None,45,WHITE)
+    # вывод текста Game Over
+    if dead1:
+        screen.blit(game_over_text, (470, 250))
+        screen.blit(font_PS.render(user_text, True, BLACK), (400,350))
+        screen.blit(font_PS.render("Счет:"+str(score),True,BLACK),(400,400))
+        screen.blit(press_space_text, (400, 450))
+    draw_lives(screen, 25, 6, tank1.lives,
+               tank_mini_img)
+    draw_shield_bar(screen, 15, 43, tank1.shield)
+
+    pg.display.flip()
+    
+    # увеличиваем сложность игры через каждые DIFF_LEVEL_TIMER кадров
+    diff_level_count_fps += 1
+    if diff_level_count_fps > DIFF_LEVEL_TIMER:
+        diff_level_count_fps = 0
+        newmiss()  # добавляем ракету
+        BOMBER_ODDS = int(BOMBER_ODDS * 0.7)  # chances a new bomber appears
+        BOMB_ODDS = int(BOMB_ODDS * 0.9)  # chances a new bomb will drop 
+    
 
 pg.quit()
 
