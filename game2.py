@@ -617,6 +617,78 @@ class Shot(pg.sprite.Sprite):
         if not SCREENRECT.contains(self.rect):
             self.kill()
 
+class Helicopter(pg.sprite.Sprite):
+
+            speed = 0.5
+            g = 0.2
+            gun_offset_x = 50
+            gun_offset_y = 52
+            num_img = 0
+            images = []
+
+            def __init__(self):
+                pg.sprite.Sprite.__init__(self, self.containers)
+                self.image = self.images['left'][0]
+                self.rect = self.image.get_rect(midbottom=SCREENRECT.midbottom)
+                self.reloading = 0
+                self.facing = 1
+                self.vx = 0
+                self.vy = 0
+
+                self.shield = 100
+                self.lives = 3
+                self.hidden = False
+                self.hide_timer = pg.time.get_ticks()
+
+                self.frame = 0
+                self.last_update = pg.time.get_ticks()
+                self.frame_rate = 30
+
+            def move(self, direction):
+                self.vx = self.vx + direction * self.speed
+                if direction:
+                    self.facing = direction
+
+            def vert_move(self, direction):
+                self.vy = self.vy + direction * self.speed
+
+            def destroy(self):
+                expl_sound.play()
+                Explosion(self, 'player')
+                self.kill()
+
+            def gunpos(self):
+                x = self.facing * self.gun_offset_x + self.rect.centerx
+                y = self.rect.top + self.gun_offset_y
+                return x, y
+
+            def fire(self):
+                if not self.reloading:  # and len(small_shots) < MAX_SHOTS:
+                    Shot_small(self.gunpos(), self.facing)
+                    self.reloading = 10
+                    shot1_sound.play()
+
+            def update(self):
+                # вызывается на каждом цикле игры
+                self.rect.move_ip(self.vx, -self.vy)
+                self.rect = self.rect.clamp(SCREENRECT)
+                if self.rect.bottom < HEIGHT:
+                    self.vy = self.vy - self.g
+
+                if self.reloading > 0:
+                    self.reloading -= 1
+
+                now = pg.time.get_ticks()
+                if now - self.last_update > self.frame_rate:
+                    self.last_update = now
+                    self.frame += 1
+                    if self.frame == self.num_img:
+                        self.frame = 0
+                    if self.facing < 0:
+                        self.image = self.images['right'][self.frame]
+                    else:
+                        self.image = self.images['left'][self.frame]
+
         # Initialize pygame
 
 
@@ -682,7 +754,14 @@ powerup_images["life"] = load_image("data/tank1.png", -1, 0.3)
 img = load_image("data/bomber.gif")
 Bomber.images = [img, pg.transform.flip(img, 1, 0)]
 Bomb.images = [load_image("data/bomb.gif")]
-
+Helicopter.images = {}
+Helicopter.images['left']=[]
+Helicopter.images['right']=[]
+Helicopter.num_img = 4
+for i in range(4):
+    img = load_image("data/helicopter_{}.png".format(i), -1, 1)
+    Helicopter.images['left'].append(img)
+    Helicopter.images['right'].append(pg.transform.flip(img, 1, 0))
 # Initialize Game Groups
 shots = pg.sprite.Group()
 bombers = pg.sprite.Group()
@@ -702,7 +781,7 @@ Shot.containers = shots, all
 Explosion.containers = all
 Bomber.containers = bombers, all, lastbomber
 Bomb.containers = bombs, all
-
+Helicopter.containers = all
 bomberreload = BOMBER_RELOAD
 
 clock = pg.time.Clock()
@@ -713,7 +792,9 @@ tank2 = Tank()
 tank2.rect.right = WIDTH
 # target = Target()
 finished = False
-
+hel = Helicopter()
+hel.rect.left = 0
+hel.rect.top = HEIGHT/2
 score = 0
 dead1 = False
 font = pg.font.Font(None, 25)  # шрифт для счета очков
@@ -736,9 +817,14 @@ while not finished:
         direction = keystate[pg.K_d] - keystate[pg.K_a]
         tank1.move(direction)
 
-        direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
-        tank2.move(direction)
+        #direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
+        #tank2.move(direction)
 
+        direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
+        hel.move(direction)
+        hel.vert_move(keystate[pg.K_UP] - keystate[pg.K_DOWN])
+        if keystate[pg.K_RCTRL]:
+            hel.fire()
         clock.tick(FPS)
         for event in pg.event.get():
 
@@ -798,7 +884,13 @@ while not finished:
                 tank1.hide()
                 tank1.lives -= 1
                 tank1.shield = 100
-
+        hits = pg.sprite.spritecollide(hel, miss, True)
+        for hit in hits:
+            hel.shield -= 10
+            Explosion(hit, 'sm')
+            newmiss()
+            if hel.shield <= 0:
+                hel.destroy()
         if bomberreload:
             bomberreload = bomberreload - 1
         elif not int(random.random() * BOMBER_ODDS):
@@ -831,7 +923,21 @@ while not finished:
         for bomb in pg.sprite.spritecollide(tank2, bombs, 1):
             tank2.destroy()
 
-            # Если игрок умер, игра окончена
+            #     # Попадание снарядов в вертолет
+            #     for shot in pg.sprite.spritecollide(hel, shots, 1):
+            #         hel.destroy()
+
+            # Столкновение вертолета с бомбером
+            for bomber in pg.sprite.spritecollide(hel, bombers, 1):
+                hel.destroy()
+
+                # Попадание бомб в игроков
+            for bomb in pg.sprite.spritecollide(tank1, bombs, 1):
+                tank1.destroy()
+            for bomb in pg.sprite.spritecollide(hel, bombs, 1):
+                hel.destroy()
+
+                # Если игрок умер, игра окончена
         if tank1.lives == 0:
             tank1.destroy()
             dead1 = True
