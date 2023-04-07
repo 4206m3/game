@@ -1,7 +1,8 @@
 import pygame as pg
 from parameters import *
+from img_file import load_image
 
-def print_text(message,x,y, textFont, textSize, textColor=(0,0,0)):
+def print_text(message,x,y, textFont, textSize, textColor=(200,200,150)):
     newFont=pg.font.Font(textFont, textSize)
     newText=newFont.render(message, True, textColor)
     screen.blit(newText, (x,y))
@@ -11,10 +12,10 @@ class Button:
     def __init__(self, width, heigth):
         self.width = width
         self.height = heigth
-        self.inactive_color = BLUE
+        self.inactive_color = (26, 31, 25)
         self.active_color = WHITE
 
-    def draw(self, x, y, message, action=None, font_size=30):
+    def draw(self, x, y, message, action=None, font_size=20):
         mouse = pg.mouse.get_pos()
         click = pg.mouse.get_pressed()
         if x < mouse[0] < x + self.width and y < mouse[1] < y + self.height:
@@ -24,7 +25,7 @@ class Button:
 
         else:
             pg.draw.rect(screen, self.inactive_color, (x, y, self.width, self.height))
-        print_text(message=message, x=x + 30, y=y + 30, textFont=None, textSize=font_size)
+        print_text(message=message, x=x + 5, y=y + 5, textFont=None, textSize=font_size)
 
 
 def game():
@@ -34,17 +35,24 @@ def game():
 
 
 def main_menu():
+    
+    screen = pg.display.set_mode((WIDTH, HEIGHT))
+
+    bgdtile = load_image("data/menu_bg1.jpg")
+    screen.blit(bgdtile, (0, 0))
+    pg.display.flip()
+    
     clock = pg.time.Clock()
-    start = Button(150, 70)
-    quit_but = Button(150, 70)
-    base_font = pg.font.Font(None, 32)
+    start = Button(200, 20)
+    quit_but = Button(200, 20)
+    base_font = pg.font.Font(None, 20)
     global user_text
     # create rectangle
-    input_rect = pg.Rect(650, 400, 150, 70)
-    input_rect_2=pg.Rect(650,500,150,70)
+    input_rect = pg.Rect(600, 550, 200, 20)
+    input_rect_2=pg.Rect(600, 575, 200, 20)
     # color_active stores color(lightskyblue3) which
     # gets active when input box is clicked by user
-    color_active = pg.Color(WHITE)
+    color_active = pg.Color(45, 45, 30)
     # color_passive store color(chartreuse4) which is
     # color of input box.
     color_passive = pg.Color(BLUE)
@@ -59,11 +67,11 @@ def main_menu():
             if event.type == pg.QUIT:
                 pg.quit()
                 quit()
-            screen.fill(BLUE)
-            pg.draw.rect(screen, RED, pg.Rect(500, 70, 450, 500))
-            start.draw(650, 200, "Играть!", game)
-            quit_but.draw(650, 300, "Выход", quit)
-            print_text("ТАНКИ", 620, 100, None, 85)
+#             screen.fill(BLUE)
+#             pg.draw.rect(screen, RED, pg.Rect(500, 70, 450, 500))
+            start.draw(600, 475, "Играть!", game)
+            quit_but.draw(600, 500, "Выход", quit)
+#             print_text("ТАНКИ", 620, 100, None, 85)
             if event.type == pg.MOUSEBUTTONDOWN:
                 if input_rect.collidepoint(event.pos):
                     active = True
