@@ -329,8 +329,8 @@ while not finished:
     screen.blit(score_img, (1220, 0))
     score_text = font.render("Вертолет: " + str(score2), True, BLACK)
     screen.blit(score_text, (1245, 20))
-    print_text(user_text, 30, 50, None, 45, WHITE)
-    print_text(user_text_2, 1100, 50, None, 45, WHITE)
+    print_text(user_text, 20, 60, None, 45, BLACK))
+    print_text(user_text_2, 1100, 50, None, 45, BLACK))
     # вывод текста Game Over
     if dead1 and dead2:
         screen.blit(game_over_text, (470, 250))
