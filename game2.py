@@ -1,24 +1,19 @@
 """
 доДЕЛАТЬ:
 По нашему собственному ТЗ не хватает:
-- возможность ввести имя игрока
 - выбора режима игры – 1 или 2 игрока
-- сохранить свой рекорд по имени.
-- таблица с рекордами
-- отражаются очки, жизни и уровень здоровья (доделать для вертолета).
-- вывод информации где можно увидеть какими кнопками управлять
+- доделать сортировку в вывод таблицы с рекордами!
 
-Также нужно устранить ряд глюков
-- после взрыва игрока (вертолет), спрайт пропадает, но можно продолжать стрелять и играть
-- не обязательно: укоротить звук падающей бомбы или прекратить его когда она упала уже...
+Глюки:
+- ограничить длину ввода и вывода имени игрока
 
-Дополнительно (если будет время):
-- сбалансировать управление вертолетом, он очень быстро умирает....
-
+Дополнительно:
+- выход в меню после окончания игры?
 """
 
 import math
 import random
+import csv
 from Button_Menu import *
 import pygame
 import pygame as pg
@@ -128,6 +123,7 @@ font_GO = pg.font.Font(None, 112)
 game_over_text = font_GO.render("Game Over", True, BLACK)
 font_PS = pg.font.Font(None, 42)
 press_space_text = font_PS.render("нажмите пробел для продолжения игры", True, BLACK)
+write_records_flag = False
 
 while not finished:
 
@@ -178,6 +174,7 @@ while not finished:
                 screen.blit(background, (0, 0))  # удаляем текст Game
                 score1 = 0
                 score2 = 0
+                write_records_flag = False
 
     tank1.power_up()
     # проверьте, не попал ли танк в ракету
@@ -276,7 +273,7 @@ while not finished:
     # Столкновение вертолета с бомбером
     hits = pg.sprite.spritecollide(hel, bombers, 1)
     for hit in hits:
-        hel.shield -= 50
+        hel.shield -= 100
         Explosion(hit, 'sm')
         newmiss()
         if hel.shield <= 0:
@@ -300,7 +297,7 @@ while not finished:
 
     # Попадание бомб в вертолет
     for bomb in pg.sprite.spritecollide(hel, bombs, 1):
-        hel.shield -= 10
+        hel.shield -= 100
         Explosion(hit, 'sm')
         newmiss()
         if hel.shield <= 0:
@@ -339,6 +336,17 @@ while not finished:
         screen.blit(font_PS.render(user_text_2, True, BLACK), (600, 350))
         screen.blit(font_PS.render("Счет:" + str(score2), True, BLACK), (600, 400))
         screen.blit(press_space_text, (400, 450))
+        
+        # Если еще не записали, делаем запись рекордов
+        # Это нужно чтобы не делать запись рекордов на каждом кадре игры...
+        if not write_records_flag:
+            with open("records.csv", mode="a", encoding='utf-8') as w_file:
+                file_writer = csv.writer(w_file, delimiter = ",", lineterminator="\r")
+                file_writer.writerow([user_text, score1])
+                file_writer.writerow([user_text_2, score2])
+            write_records_flag = True
+           
+            
     draw_lives(screen, 25, 6, tank1.lives,
                tank_mini_img)
     draw_shield_bar(screen, 15, 43, tank1.shield)
