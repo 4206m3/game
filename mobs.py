@@ -84,6 +84,7 @@ class Bomb(pg.sprite.Sprite):
             self.kill()
 
 
-Missle.images = [load_image("data/spr_missile.png", 1)]
+# Missle.images = [load_image("data/spr_missile.png", 1)]
+Missle.images = [load_image("data/quadcopter.png")]
 Bomber.images = [img, pg.transform.flip(img, 1, 0)]
 Bomb.images = [load_image("data/bomb.gif")]
