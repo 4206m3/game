@@ -173,7 +173,7 @@ while run:
 
                 # продолжение игры после смерти по нажатию ПРОБЕЛ
                 elif event.type == pg.KEYDOWN:
-                    if event.key == pg.K_SPACE:
+                    if event.key == pg.K_SPACE or pg.K_ESCAPE:
                         dead1=False
                         dead2=False
                         screen.blit(background, (0, 0))  # удаляем текст Game
