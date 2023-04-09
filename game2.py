@@ -133,6 +133,7 @@ game_over_text = font_GO.render("Game Over", True, BLACK)
 font_PS = pg.font.Font(None, 42)
 press_space_text = font_PS.render("нажмите пробел для продолжения игры", True, BLACK)
 run=True
+write_records_flag = False
 while run:
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -173,7 +174,12 @@ while run:
 
                 # продолжение игры после смерти по нажатию ПРОБЕЛ
                 elif event.type == pg.KEYDOWN:
-                    if event.key == pg.K_SPACE or pg.K_ESCAPE:
+                    if event.key == pg.K_SPACE:
+                        dead1=False
+                        dead2=False
+                        screen.blit(background, (0, 0))  # удаляем текст Game
+                        finished=True
+                    if event.key == pg.K_ESCAPE:
                         dead1=False
                         dead2=False
                         screen.blit(background, (0, 0))  # удаляем текст Game
@@ -392,7 +398,7 @@ while run:
         hel = Helicopter()
         hel.rect.left = 0
         hel.rect.top = HEIGHT / 2
-
+        write_records_flag = False
         if not player_tank:
             tank1.destroy()
             dead1 = True
