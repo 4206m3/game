@@ -20,7 +20,7 @@ def print_records():
             count += 1
             # Вывод строки. Выравнивание не срабатывает т.к. в шрифте буквы имеют разную ширину
             # row["Name"][:20] - это для отсекания очень длинного имени до 20 символов
-            msg = "{c:2}. {n:.<20s} {r:d}".format(c = count, n = row["Name"][:20], r = int(row["Record"]))
+            msg = "{c:2}. {n:.<20s}{v:4} {r:d}".format(c = count, n = row["Name"][:20],v=row['tip'], r = int(row["Record"]))
             print_text(message=msg, x=870, y=450+count*14, textSize=14)
             if count>9:
                 break

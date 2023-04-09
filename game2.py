@@ -360,6 +360,15 @@ while run:
                 draw_shield_bar(screen, 1250, 43, hel.shield)
             pg.display.flip()
 
+            # Если еще не записали, делаем запись рекордов
+            # Это нужно чтобы не делать запись рекордов на каждом кадре игры...
+            if not write_records_flag:
+                with open("records.csv", mode="a", encoding='utf-8') as w_file:
+                    file_writer = csv.writer(w_file, delimiter=",", lineterminator="\r")
+                    file_writer.writerow([user_text,'танк', score1])
+                    file_writer.writerow([user_text_2,"верт", score2])
+                write_records_flag = True
+
             # увеличиваем сложность игры через каждые DIFF_LEVEL_TIMER кадров
             diff_level_count_fps += 1
             if diff_level_count_fps > DIFF_LEVEL_TIMER:
