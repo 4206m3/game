@@ -178,10 +178,14 @@ while run:
                         dead1=False
                         dead2=False
                         screen.blit(background, (0, 0))  # удаляем текст Game
+                        tank1.destroy()
+                        hel.destroy()
                         finished=True
                     if event.key == pg.K_ESCAPE:
                         dead1=False
                         dead2=False
+                        tank1.destroy()
+                        hel.destroy()
                         screen.blit(background, (0, 0))  # удаляем текст Game
                         finished=True
             tank1.power_up()
@@ -356,6 +360,12 @@ while run:
                     screen.blit(font_PS.render(user_text, True, BLACK), (400, 350))
                     screen.blit(font_PS.render("Счет:" + str(score1), True, BLACK), (400, 400))
                     screen.blit(press_space_text, (400, 450))
+                if not write_records_flag:
+                    with open("records.csv", mode="a", encoding='utf-8') as w_file:
+                        file_writer = csv.writer(w_file, delimiter=",", lineterminator="\r")
+                        file_writer.writerow([user_text, 'танк', score1])
+                        file_writer.writerow([user_text_2, "верт", score2])
+                    write_records_flag = True
             if player_tank:
                 draw_lives(screen, 25, 6, tank1.lives,
                            tank_mini_img)
@@ -368,12 +378,7 @@ while run:
 
             # Если еще не записали, делаем запись рекордов
             # Это нужно чтобы не делать запись рекордов на каждом кадре игры...
-            if not write_records_flag:
-                with open("records.csv", mode="a", encoding='utf-8') as w_file:
-                    file_writer = csv.writer(w_file, delimiter=",", lineterminator="\r")
-                    file_writer.writerow([user_text,'танк', score1])
-                    file_writer.writerow([user_text_2,"верт", score2])
-                write_records_flag = True
+
 
             # увеличиваем сложность игры через каждые DIFF_LEVEL_TIMER кадров
             diff_level_count_fps += 1
