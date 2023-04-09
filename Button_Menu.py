@@ -134,9 +134,14 @@ def main_menu():
                         active = False
                     elif event.key == pg.K_BACKSPACE:
                         # get text input from 0 to -1 i.e. end.
+                        if user_text=="Имя(танк)":
+                            user_text=""
                         user_text = user_text[:-1]
                     else:
-                        user_text += event.unicode
+                        if user_text=="Имя(танк)":
+                            user_text=""
+                        if len(user_text)<11:
+                           user_text += event.unicode
                         # user_text += event.Text.Unicode
                 color = color_active
             else:
@@ -153,9 +158,14 @@ def main_menu():
                         active = False
                     elif event.key == pg.K_BACKSPACE:
                     # get text input from 0 to -1 i.e. end.
+                        if user_text_2=="Имя(вертолет)":
+                           user_text_2 = ""
                         user_text_2 = user_text_2[:-1]
                     else:
-                        user_text_2 += event.unicode
+                        if user_text_2=="Имя(вертолет)":
+                           user_text_2 = ""
+                        if len(user_text_2) < 11:
+                           user_text_2 += event.unicode
                     # user_text += event.Text.Unicode
                 color2 = color_active
             else:
