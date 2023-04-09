@@ -100,7 +100,9 @@ class Helicopter(pg.sprite.Sprite):
         self.hidden = True
         self.hide_timer = pg.time.get_ticks()
         self.rect.center = (WIDTH / 2, HEIGHT + 200)  # чтобы нельзя было попасть в отсутствующий ))
-
+    def destroy(self):
+        self.kill()
+        self.rect.center = (WIDTH / 2, HEIGHT + 200)  # чтобы нельзя было попасть в отсутствующий ))
 Shot_small.images = [load_image("data/small_shot.png", -1)]
 Helicopter.images = {}
 Helicopter.images['left'] = []

@@ -1,6 +1,6 @@
 import pygame as pg
 from parameters import *
-from img_file import load_image
+from img_file import *
 
 def print_text(message,x,y, textFont, textSize, textColor=(200,200,150)):
     newFont=pg.font.Font(textFont, textSize)
@@ -26,8 +26,33 @@ class Button:
         else:
             pg.draw.rect(screen, self.inactive_color, (x, y, self.width, self.height))
         print_text(message=message, x=x + 5, y=y + 5, textFont=None, textSize=font_size)
+class But_little:
+    def __init__(self, width, heigth):
+        self.width = width
+        self.height = heigth
+        self.inactive_color = (26, 31, 25)
+        self.active_color = WHITE
 
-
+    def draw(self, surf,img, x, y, player, font_size=20):
+        mouse = pg.mouse.get_pos()
+        click = pg.mouse.get_pressed()
+        if x < mouse[0] < x + self.width and y < mouse[1] < y + self.height:
+            if click[0] == 1 and not player:
+                pg.draw.rect(screen, self.active_color, (x, y, self.width, self.height))
+                player=True
+            elif click[0] == 1 and player:
+                pg.draw.rect(screen, self.inactive_color, (x, y, self.width, self.height))
+                player=False
+        else:
+            if player:
+                pg.draw.rect(screen, self.active_color, (x, y, self.width, self.height))
+            else:
+                pg.draw.rect(screen, self.inactive_color, (x, y, self.width, self.height))
+        img_rect = img.get_rect()
+        img_rect.x=x+2
+        img_rect.y = y+2
+        surf.blit(img, img_rect)
+        return player
 def game():
     global menu
     menu = False
@@ -45,6 +70,8 @@ def main_menu():
     clock = pg.time.Clock()
     start = Button(200, 20)
     quit_but = Button(200, 20)
+    tank_bttn=But_little(30,20)
+    hel_bttn=But_little(45,20)
     base_font = pg.font.Font(None, 20)
     global user_text
     # create rectangle
@@ -61,17 +88,21 @@ def main_menu():
     active = False
     active2 = False
     user_text_2= "Имя(вертолет)"
+    player_tank = True
+    player_helicopter = False
+    global menu
+    menu= True
     while menu:
         clock.tick(1000)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
                 quit()
-#             screen.fill(BLUE)
-#             pg.draw.rect(screen, RED, pg.Rect(500, 70, 450, 500))
             start.draw(600, 475, "Играть!", game)
             quit_but.draw(600, 500, "Выход", quit)
-#             print_text("ТАНКИ", 620, 100, None, 85)
+            player_tank=tank_bttn.draw(screen,tank_mini_img, 720, 525, player_tank)
+            player_helicopter=hel_bttn.draw(screen,hel_mini_img, 754, 525, player_helicopter)
+            print_text("Режим игры", 607, 527, None, 20)
             if event.type == pg.MOUSEBUTTONDOWN:
                 if input_rect.collidepoint(event.pos):
                     active = True
@@ -131,6 +162,6 @@ def main_menu():
         # outside of user's text input
         input_rect_2.w = max(100, text_surface_2.get_width() + 10)
         pg.display.update()
-    return user_text, user_text_2
+    return user_text, user_text_2, player_tank, player_helicopter
 
 

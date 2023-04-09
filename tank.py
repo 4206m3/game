@@ -89,6 +89,7 @@ class Tank(pg.sprite.Sprite):
     def destroy(self):
         self.dulo.kill()
         self.kill()
+        self.rect.center = (WIDTH / 2, HEIGHT + 200)  # чтобы нельзя было попасть в отсутствующий ))
 #         print('убит')
 
     def gunpos(self):
