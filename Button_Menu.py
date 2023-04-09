@@ -1,12 +1,29 @@
 import pygame as pg
+import csv
 from parameters import *
 from img_file import *
 
-def print_text(message,x,y, textFont, textSize, textColor=(200,200,150)):
+def print_text(message,x,y, textFont=None, textSize=10, textColor=(200,200,150)):
     newFont=pg.font.Font(textFont, textSize)
     newText=newFont.render(message, True, textColor)
     screen.blit(newText, (x,y))
     return newText
+
+def print_records():
+    with open("records.csv", encoding='utf-8') as r_file:
+        # Создаем объект DictReader, указываем символ-разделитель ","
+        file_reader = csv.DictReader(r_file, delimiter = ",")
+        # Счетчик для подсчета количества строк и вывода заголовков столбцов
+        count = 0
+        # Считывание данных из CSV файла
+        for row in file_reader:
+            count += 1
+            # Вывод строки. Выравнивание не срабатывает т.к. в шрифте буквы имеют разную ширину
+            # row["Name"][:20] - это для отсекания очень длинного имени до 20 символов
+            msg = "{c:2}. {n:.<20s} {r:d}".format(c = count, n = row["Name"][:20], r = int(row["Record"]))
+            print_text(message=msg, x=870, y=450+count*14, textSize=14)
+            if count>9:
+                break
 
 class Button:
     def __init__(self, width, heigth):
@@ -66,6 +83,8 @@ def main_menu():
     bgdtile = load_image("data/menu_bg1.jpg")
     screen.blit(bgdtile, (0, 0))
     pg.display.flip()
+    
+    print_records()
     
     clock = pg.time.Clock()
     start = Button(200, 20)

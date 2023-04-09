@@ -372,6 +372,8 @@ while run:
 
 
         user_text, user_text_2, player_tank, player_helicopter = main_menu()
+        dead1= False
+        dead1=False
         screen.blit(background, (0, 0))  # удаляем текст Game
         tank1 = Tank()
         tank1.rect.left = 0
