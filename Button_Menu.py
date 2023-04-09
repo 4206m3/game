@@ -13,6 +13,7 @@ def print_records():
     with open("records.csv", encoding='utf-8') as r_file:
         # Создаем объект DictReader, указываем символ-разделитель ","
         file_reader = csv.DictReader(r_file, delimiter = ",")
+        file_reader = sorted(file_reader, key=lambda row: int(row["Record"]), reverse=True)
         # Счетчик для подсчета количества строк и вывода заголовков столбцов
         count = 0
         # Считывание данных из CSV файла
