@@ -138,6 +138,7 @@ while run:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             pg.quit()
+            run=False
             quit()
         finished= False
         while not finished:
@@ -160,6 +161,8 @@ while run:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     pg.quit()
+                    finished=True
+                    run=False
                     quit()
                     finished = True
                 elif event.type == pg.MOUSEBUTTONDOWN:

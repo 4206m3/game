@@ -75,8 +75,11 @@ def game():
     global menu
     menu = False
     return menu
-
-
+def qt():
+    pg.quit()
+    quit()
+    menu=False
+    run=False
 def main_menu():
     
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -117,9 +120,10 @@ def main_menu():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
+                menu=False
                 quit()
             start.draw(600, 475, "Играть!", game)
-            quit_but.draw(600, 500, "Выход", quit)
+            quit_but.draw(600, 500, "Выход", qt)
             player_tank=tank_bttn.draw(screen,tank_mini_img, 720, 525, player_tank)
             player_helicopter=hel_bttn.draw(screen,hel_mini_img, 754, 525, player_helicopter)
             print_text("Режим игры", 607, 527, None, 20)
